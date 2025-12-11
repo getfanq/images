@@ -1,0 +1,36 @@
+# Registry configuration
+# This file defines where Docker images will be pushed
+
+registry:
+  # Default registry (GitHub Container Registry)
+  host: ghcr.io
+  
+  # Username/organization - will be set from environment variable or CLI argument
+  # Override with REGISTRY_USERNAME environment variable
+  username: ${GITHUB_REPOSITORY_OWNER:-username}
+  
+  # Authentication
+  # For GHCR, use GitHub token with packages:write permission
+  # Set via REGISTRY_TOKEN or GITHUB_TOKEN environment variable
+  
+  # Alternative registries (uncomment to use)
+  # host: docker.io
+  # username: your-dockerhub-username
+  
+  # host: registry.gitlab.com
+  # username: your-gitlab-username
+  
+  # host: public.ecr.aws
+  # username: aws-account-id
+
+# Image naming configuration
+naming:
+  # Separator between version components
+  separator: "-"
+  
+  # Tag format: ubuntu{version}-node{version}-php{version}
+  # Example: ubuntu22.04-node24-php8.2
+  format: "ubuntu{ubuntu}-node{node}-php{php}"
+  
+  # Whether to include minor versions in tags
+  include_minor_versions: true

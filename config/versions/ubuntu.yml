@@ -1,0 +1,22 @@
+# Ubuntu version definitions
+versions:
+  - version: "22.04"
+    codename: jammy
+    lts: true
+    supported: true
+    description: "Ubuntu 22.04 LTS (Jammy Jellyfish)"
+    eol_date: "2027-04"
+    
+  - version: "24.04"
+    codename: noble
+    lts: true
+    supported: true
+    description: "Ubuntu 24.04 LTS (Noble Numbat)"
+    eol_date: "2029-04"
+    default: true
+    
+  # Future versions can be added here
+  # - version: "26.04"
+  #   codename: tbd
+  #   lts: true
+  #   supported: false

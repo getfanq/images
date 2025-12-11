@@ -1,0 +1,207 @@
+name: Build and Push CI Images
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - 'namespaces/ci/**'
+      - 'config/**'
+      - '.github/workflows/build-ci.yml'
+  pull_request:
+    paths:
+      - 'namespaces/ci/**'
+      - 'config/**'
+  workflow_dispatch:
+    inputs:
+      push_images:
+        description: 'Push images to registry'
+        required: false
+        default: true
+        type: boolean
+      build_all:
+        description: 'Build all images in matrix'
+        required: false
+        default: true
+        type: boolean
+
+env:
+  REGISTRY: ghcr.io
+  NAMESPACE: ci
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  # Generate build matrix from config
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Generate build matrix
+        id: set-matrix
+        run: |
+          # Generate matrix with all combinations of Ubuntu, Node, and PHP
+          # Currently: 2 Ubuntu × 1 Node × 1 PHP = 2 images
+          cat > matrix.json << 'EOF'
+          {
+            "include": [
+              {
+                "name": "ubuntu22.04-node24-php8.2",
+                "ubuntu": "22.04",
+                "node": "24",
+                "php": "8.2",
+                "aliases": ""
+              },
+              {
+                "name": "ubuntu24.04-node24-php8.2",
+                "ubuntu": "24.04",
+                "node": "24",
+                "php": "8.2",
+                "aliases": "latest"
+              }
+            ]
+          }
+          EOF
+          echo "matrix=$(cat matrix.json | jq -c .)" >> $GITHUB_OUTPUT
+
+  # Build and push images
+  build:
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            image=moby/buildkit:latest
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        run: |
+          # Build primary tag
+          PRIMARY_TAG="${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.NAMESPACE }}:ubuntu${{ matrix.ubuntu }}-node${{ matrix.node }}-php${{ matrix.php }}"
+          echo "primary_tag=${PRIMARY_TAG}" >> $GITHUB_OUTPUT
+          
+          # Build tags with aliases
+          TAGS="${PRIMARY_TAG}"
+          if [[ -n "${{ matrix.aliases }}" ]]; then
+            IFS=',' read -ra ALIASES <<< "${{ matrix.aliases }}"
+            for alias in "${ALIASES[@]}"; do
+              alias=$(echo "$alias" | xargs)  # Trim whitespace
+              TAGS="${TAGS},${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.NAMESPACE }}:${alias}"
+            done
+          fi
+          echo "tags=${TAGS}" >> $GITHUB_OUTPUT
+          
+          # Build labels
+          echo "labels<<EOF" >> $GITHUB_OUTPUT
+          echo "org.opencontainers.image.title=CI Image - ${{ matrix.name }}" >> $GITHUB_OUTPUT
+          echo "org.opencontainers.image.description=CI/CD image with Ubuntu ${{ matrix.ubuntu }}, Node.js ${{ matrix.node }}, PHP ${{ matrix.php }}, pnpm, Composer, Symfony CLI, and Playwright dependencies" >> $GITHUB_OUTPUT
+          echo "org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}" >> $GITHUB_OUTPUT
+          echo "org.opencontainers.image.revision=${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "org.opencontainers.image.created=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
+          echo "version.ubuntu=${{ matrix.ubuntu }}" >> $GITHUB_OUTPUT
+          echo "version.node=${{ matrix.node }}" >> $GITHUB_OUTPUT
+          echo "version.php=${{ matrix.php }}" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./namespaces/ci
+          file: ./namespaces/ci/Dockerfile
+          push: ${{ github.event_name != 'pull_request' && (github.event.inputs.push_images == 'true' || github.event.inputs.push_images == '') }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            UBUNTU_VERSION=${{ matrix.ubuntu }}
+            NODE_VERSION=${{ matrix.node }}
+            PHP_VERSION=${{ matrix.php }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+          platforms: linux/amd64
+
+      - name: Run smoke tests
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "Running smoke tests on ${{ steps.meta.outputs.primary_tag }}"
+          docker run --rm ${{ steps.meta.outputs.primary_tag }} php --version
+          docker run --rm ${{ steps.meta.outputs.primary_tag }} composer --version
+          docker run --rm ${{ steps.meta.outputs.primary_tag }} node --version
+          docker run --rm ${{ steps.meta.outputs.primary_tag }} pnpm --version
+          docker run --rm ${{ steps.meta.outputs.primary_tag }} symfony version
+          echo "All smoke tests passed!"
+
+      - name: Image size report
+        if: github.event_name != 'pull_request'
+        run: |
+          # Pull the image from registry since buildx push doesn't keep it locally
+          docker pull ${{ steps.meta.outputs.primary_tag }}
+          SIZE=$(docker image inspect ${{ steps.meta.outputs.primary_tag }} --format='{{.Size}}' | numfmt --to=iec-i --suffix=B)
+          echo "### Image Size Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Image:** \`${{ steps.meta.outputs.primary_tag }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Size:** $SIZE" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Configuration:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Ubuntu: ${{ matrix.ubuntu }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Node.js: ${{ matrix.node }}" >> $GITHUB_STEP_SUMMARY
+          echo "- PHP: ${{ matrix.php }}" >> $GITHUB_STEP_SUMMARY
+          echo "- pnpm: latest" >> $GITHUB_STEP_SUMMARY
+          echo "- Playwright deps: installed" >> $GITHUB_STEP_SUMMARY
+          echo "- Composer: 2" >> $GITHUB_STEP_SUMMARY
+          echo "- Symfony CLI: latest" >> $GITHUB_STEP_SUMMARY
+
+  # Summary job
+  summary:
+    needs: build
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Build summary
+        run: |
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.build.result }}" == "success" ]; then
+            echo "✅ All images built successfully!" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Some images failed to build." >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Registry:** \`${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.NAMESPACE }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Available Images" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Pull images using:" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+          echo "# Latest (Ubuntu 24.04, Node 24, PHP 8.2)" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.NAMESPACE }}:latest" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "# Ubuntu 22.04 with Node 24 and PHP 8.2" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.NAMESPACE }}:ubuntu22.04-node24-php8.2" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "# Ubuntu 24.04 with Node 24 and PHP 8.2" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.NAMESPACE }}:ubuntu24.04-node24-php8.2" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY

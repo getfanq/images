@@ -1,0 +1,62 @@
+# PHP version definitions
+versions:
+  - version: "8.2"
+    full_version: "8.2.x"
+    supported: true
+    description: "PHP 8.2 (Security fixes until 2026-12-08)"
+    release_date: "2022-12-08"
+    active_support_until: "2025-12-08"
+    security_support_until: "2026-12-08"
+    default: true
+
+# PHP repository configuration (ondrej/php PPA)
+repository:
+  name: "ondrej/php"
+  type: "ppa"
+  url: "ppa:ondrej/php"
+
+# Common PHP extensions for Symfony applications
+extensions:
+  # Essential
+  - cli
+  - fpm
+  - common
+  
+  # Database drivers
+  - mysql
+  - pgsql
+  - sqlite3
+  
+  # Core functionality
+  - xml
+  - curl
+  - mbstring
+  - intl
+  - zip
+  - bcmath
+  - gd
+  
+  # Caching & Performance
+  - redis
+  - opcache
+  - apcu
+  
+  # Message Queue
+  - amqp
+  
+  # Optional (uncomment if needed)
+  # - mongodb
+  # - memcached
+  # - imagick
+  # - xdebug  # For debugging only, not recommended for CI
+
+# PHP configuration for CI environments
+ini_settings:
+  memory_limit: "512M"
+  max_execution_time: "300"
+  upload_max_filesize: "50M"
+  post_max_size: "50M"
+  error_reporting: "E_ALL"
+  display_errors: "On"
+  opcache.enable: "1"
+  opcache.enable_cli: "1"

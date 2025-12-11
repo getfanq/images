@@ -1,0 +1,170 @@
+# CI Namespace Configuration
+# This file defines the build matrix for CI Docker images
+
+namespace: ci
+description: "CI/CD images for Symfony projects with Node.js, PHP, and Playwright"
+
+# Registry configuration (can override global config)
+registry:
+  host: ghcr.io
+  # Username will be set from environment variable GITHUB_REPOSITORY_OWNER or CLI argument
+  username: ${GITHUB_REPOSITORY_OWNER:-username}
+
+# Ubuntu versions to support
+ubuntu_versions:
+  - version: "22.04"
+    codename: jammy
+    enabled: true
+  - version: "24.04"
+    codename: noble
+    enabled: true
+    default: true
+
+# Node.js versions to support
+node_versions:
+  - version: "24"
+    enabled: true
+    default: true
+
+# PHP versions to support
+php_versions:
+  - version: "8.2"
+    enabled: true
+    default: true
+
+# Build matrix - All combinations of Ubuntu, Node, and PHP
+# With 2 Ubuntu × 1 Node × 1 PHP = 2 images
+build_matrix:
+  # Ubuntu 22.04 with Node 24 and PHP 8.2
+  - name: "ubuntu22.04-node24-php8.2"
+    ubuntu: "22.04"
+    node: "24"
+    php: "8.2"
+    description: "Ubuntu 22.04 LTS with Node.js 24 and PHP 8.2"
+    
+  # Ubuntu 24.04 with Node 24 and PHP 8.2
+  - name: "ubuntu24.04-node24-php8.2"
+    ubuntu: "24.04"
+    node: "24"
+    php: "8.2"
+    aliases:
+      - "latest"
+    description: "Ubuntu 24.04 LTS with Node.js 24 and PHP 8.2"
+
+# PHP extensions to install (see config/versions/php.yml for full list)
+php_extensions:
+  - cli
+  - fpm
+  - common
+  - mysql
+  - pgsql
+  - sqlite3
+  - xml
+  - curl
+  - mbstring
+  - intl
+  - zip
+  - bcmath
+  - gd
+  - redis
+  - opcache
+  - apcu
+  - amqp
+
+# System packages to install
+system_packages:
+  - git
+  - unzip
+  - zip
+  - ca-certificates
+  - curl
+  - wget
+  - gnupg
+  - software-properties-common
+  - build-essential
+  - mysql-client
+  - postgresql-client
+
+# Composer configuration
+composer:
+  version: "2"
+  install_globally: true
+  allow_superuser: true
+
+# pnpm configuration - using latest version only
+pnpm:
+  version: "latest"
+
+# Symfony CLI configuration - using latest version only
+symfony_cli:
+  version: "latest"
+
+# Playwright configuration - only install system dependencies
+# No specific version is configurable, always uses npx playwright install-deps
+playwright:
+  install_deps: true
+
+# Image optimization settings
+optimization:
+  # Use multi-stage builds (not applicable for this simple Dockerfile)
+  multi_stage: false
+  
+  # Clean up APT cache after installations
+  cleanup_apt_cache: true
+  
+  # Clean up npm cache (set to false to speed up subsequent installs)
+  cleanup_npm_cache: false
+  
+  # Remove documentation and man pages
+  remove_docs: true
+
+# Build options
+build_options:
+  # Docker build platform (leave empty for default)
+  platform: ""  # e.g., "linux/amd64,linux/arm64"
+  
+  # Enable BuildKit
+  buildkit: true
+  
+  # Cache strategy
+  cache:
+    enabled: true
+    type: "registry"  # or "local"
+  
+  # Build arguments to pass (in addition to version args)
+  extra_args: {}
+
+# Push options
+push_options:
+  # Automatically push after build
+  auto_push: false
+  
+  # Registries to push to (can push to multiple)
+  registries:
+    - ghcr.io
+  
+  # Tag strategy
+  tag_strategy:
+    # Always tag with full version string
+    full_version: true
+    
+    # Tag with aliases from build_matrix
+    aliases: true
+    
+    # Tag with semantic versions (major, major.minor)
+    semantic: false
+
+# Testing
+testing:
+  # Enable smoke tests after build
+  enabled: true
+  
+  # Commands to run for smoke testing
+  smoke_tests:
+    - "php --version"
+    - "composer --version"
+    - "node --version"
+    - "npm --version"
+    - "pnpm --version"
+    - "symfony version"
+    - "git --version"

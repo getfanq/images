@@ -1,0 +1,15 @@
+# Node.js version definitions
+versions:
+  - version: "24"
+    full_version: "24.x"
+    lts: false
+    supported: true
+    description: "Node.js 24.x Current"
+    release_date: "2025-04-22"
+    eol_date: "2028-04-30"
+    default: true
+
+# NodeSource repository configuration
+nodesource:
+  repository_url: "https://deb.nodesource.com"
+  setup_script_pattern: "setup_{version}.x"
