@@ -4,27 +4,21 @@ on:
   push:
     branches:
       - main
-      - master
-    paths:
-      - 'namespaces/ci/**'
-      - 'config/**'
-      - '.github/workflows/build-ci.yml'
   pull_request:
-    paths:
-      - 'namespaces/ci/**'
-      - 'config/**'
+    branches:
+      - main
   schedule:
     # Run every night at midnight UTC (0 0 * * *)
-    - cron: '0 0 * * *'
+    - cron: "0 0 * * *"
   workflow_dispatch:
     inputs:
       push_images:
-        description: 'Push images to registry'
+        description: "Push images to registry"
         required: false
         default: true
         type: boolean
       build_all:
-        description: 'Build all images in matrix'
+        description: "Build all images in matrix"
         required: false
         default: true
         type: boolean
@@ -81,10 +75,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.prepare.outputs.matrix) }}
-    
+
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -106,7 +100,7 @@ jobs:
           # Build primary tag
           PRIMARY_TAG="${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.NAMESPACE }}:ubuntu${{ matrix.ubuntu }}-node${{ matrix.node }}-php${{ matrix.php }}"
           echo "primary_tag=${PRIMARY_TAG}" >> $GITHUB_OUTPUT
-          
+
           # Build tags with aliases
           TAGS="${PRIMARY_TAG}"
           if [[ -n "${{ matrix.aliases }}" ]]; then
@@ -117,7 +111,7 @@ jobs:
             done
           fi
           echo "tags=${TAGS}" >> $GITHUB_OUTPUT
-          
+
           # Build labels
           echo "labels<<EOF" >> $GITHUB_OUTPUT
           echo "org.opencontainers.image.title=CI Image - ${{ matrix.name }}" >> $GITHUB_OUTPUT
