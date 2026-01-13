@@ -44,8 +44,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PHP_VERSION=${PHP_VERSION} \
     COMPOSER_ALLOW_SUPERUSER=1 \
     COMPOSER_HOME=/usr/local/composer \
-    PNPM_HOME=/usr/local/bin \
-    PATH="/usr/local/bin:${PATH}" \
+    PNPM_HOME=/opt/pnpm \
+    PATH="/opt/pnpm:${PATH}" \
     TZ=UTC \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8
@@ -143,7 +143,9 @@ RUN curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | bash - && \
     rm -rf /var/lib/apt/lists/* && \
     node --version && \
     npm --version && \
+    mkdir -p ${PNPM_HOME} && \
     npm install -g pnpm && \
+    chmod -R 777 ${PNPM_HOME} && \
     npm cache clean --force
 
 # Install Playwright system dependencies (no specific version)
