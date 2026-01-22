@@ -48,7 +48,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
     PATH="/opt/pnpm:${PATH}" \
     TZ=UTC \
     LANG=C.UTF-8 \
-    LC_ALL=C.UTF-8
+    LC_ALL=C.UTF-8 \
+    TURBO_TELEMETRY_DISABLED=1
 
 # Create non-root user for running applications (optional but recommended)
 # Try to use UID/GID 1000, but if taken, use any available ID
