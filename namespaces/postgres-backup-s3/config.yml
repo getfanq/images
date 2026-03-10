@@ -1,0 +1,58 @@
+# postgres-backup-s3 Namespace Configuration
+
+namespace: postgres-backup-s3
+description: "Backup PostgreSQL to S3 with optional scheduling and encryption. Based on Ubuntu 24.04 LTS with PostgreSQL 18 client."
+
+# Registry configuration
+registry:
+  host: ghcr.io
+  username: ${GITHUB_REPOSITORY_OWNER:-username}
+
+# Ubuntu versions to support
+ubuntu_versions:
+  - version: "24.04"
+    codename: noble
+    enabled: true
+    default: true
+
+# PostgreSQL versions to support
+postgres_versions:
+  - version: "18"
+    enabled: true
+    default: true
+
+# Single build - one Ubuntu LTS + one PostgreSQL version
+build_matrix:
+  - name: "ubuntu24.04"
+    ubuntu: "24.04"
+    postgres: "18"
+    description: "Ubuntu 24.04 LTS with PostgreSQL 18 client"
+
+# Image optimization settings
+optimization:
+  cleanup_apt_cache: true
+  remove_docs: true
+
+# Build options
+build_options:
+  platform: ""
+  buildkit: true
+  cache:
+    enabled: true
+    type: "registry"
+
+# Push options
+push_options:
+  auto_push: false
+  registries:
+    - ghcr.io
+
+# Testing
+testing:
+  enabled: true
+  smoke_tests:
+    - "pg_dump --version"
+    - "pg_dumpall --version"
+    - "aws --version"
+    - "openssl version"
+    - "cron -V || true"
