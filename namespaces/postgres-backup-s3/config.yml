@@ -53,6 +53,6 @@ testing:
   smoke_tests:
     - "pg_dump --version"
     - "pg_dumpall --version"
-    - "aws --version"
+    - "s3cmd --version"
     - "openssl version"
     - "cron -V || true"

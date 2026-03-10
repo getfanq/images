@@ -140,6 +140,6 @@ Pass `S3_ENDPOINT` to use any S3-compatible provider (MinIO, Cloudflare R2, Back
 |---|---|
 | Ubuntu | 24.04 LTS (Noble Numbat) |
 | PostgreSQL client | 18 (from PGDG) |
-| AWS CLI | latest from Ubuntu apt |
+| s3cmd | latest from Ubuntu apt |
 | OpenSSL | system |
 | cron | system |

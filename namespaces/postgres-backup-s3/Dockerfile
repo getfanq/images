@@ -18,7 +18,9 @@ ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8
 
 # Install PostgreSQL 18 client from the official PGDG apt repository,
-# plus awscli, openssl for encryption, and cron for scheduled backups.
+# plus s3cmd for S3 uploads, openssl for encryption, and cron for scheduled backups.
+# Note: awscli is not available in Ubuntu 24.04 apt repos; s3cmd covers all required
+# S3 operations (put, custom endpoints, signature versions) with no extra dependencies.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
@@ -35,7 +37,7 @@ RUN apt-get update \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
         postgresql-client-${POSTGRES_VERSION} \
-        awscli \
+        s3cmd \
         openssl \
         cron \
     && apt-get clean \

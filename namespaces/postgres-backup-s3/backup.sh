@@ -42,28 +42,53 @@ if [ "${POSTGRES_PASSWORD}" = "**None**" ]; then
   exit 1
 fi
 
-if [ "${S3_ENDPOINT}" = "**None**" ]; then
-  AWS_ARGS=""
-else
-  AWS_ARGS="--endpoint-url ${S3_ENDPOINT}"
+# Build s3cmd argument string
+S3CMD_ARGS="--access_key=${S3_ACCESS_KEY_ID} --secret_key=${S3_SECRET_ACCESS_KEY} --region=${S3_REGION} --no-progress"
+
+if [ "${S3_ENDPOINT}" != "**None**" ]; then
+  # Strip trailing slash from endpoint if present
+  S3_ENDPOINT_CLEAN=$(echo "$S3_ENDPOINT" | sed 's|/$||')
+  S3CMD_ARGS="${S3CMD_ARGS} --host=${S3_ENDPOINT_CLEAN} --host-bucket=${S3_ENDPOINT_CLEAN}/%(bucket)s"
 fi
 
-# env vars needed for aws tools
-export AWS_ACCESS_KEY_ID=$S3_ACCESS_KEY_ID
-export AWS_SECRET_ACCESS_KEY=$S3_SECRET_ACCESS_KEY
-export AWS_DEFAULT_REGION=$S3_REGION
+if [ "${S3_S3V4}" = "yes" ]; then
+  S3CMD_ARGS="${S3CMD_ARGS} --signature-v2=False"
+fi
 
 export PGPASSWORD=$POSTGRES_PASSWORD
 POSTGRES_HOST_OPTS="-h $POSTGRES_HOST -p $POSTGRES_PORT -U $POSTGRES_USER $POSTGRES_EXTRA_OPTS"
 
-if [ -z "${S3_PREFIX+x}" ]; then
-  S3_PREFIX="/"
+# Determine S3 destination path prefix
+if [ "${S3_PREFIX}" = "**None**" ] || [ -z "${S3_PREFIX}" ]; then
+  S3_PATH="s3://${S3_BUCKET}/"
 else
-  S3_PREFIX="/${S3_PREFIX}/"
+  S3_PATH="s3://${S3_BUCKET}/${S3_PREFIX}/"
 fi
 
+upload_file() {
+  local src=$1
+  local dest=$2
+  echo "Uploading to ${dest}"
+  # shellcheck disable=SC2086
+  s3cmd $S3CMD_ARGS put "$src" "$dest" || exit 2
+  echo "SQL backup uploaded successfully"
+  rm -f "$src"
+}
+
+encrypt_file() {
+  local src=$1
+  local enc="${src}.enc"
+  echo "Encrypting ${src}"
+  if ! openssl enc -aes-256-cbc -pbkdf2 -in "$src" -out "$enc" -k "$ENCRYPTION_PASSWORD"; then
+    >&2 echo "Error encrypting ${src}"
+    exit 1
+  fi
+  rm -f "$src"
+  echo "$enc"
+}
+
 if [ "${POSTGRES_BACKUP_ALL}" = "true" ]; then
-  SRC_FILE=dump.sql.gz
+  SRC_FILE=/tmp/dump_all.sql.gz
   DEST_FILE=all_$(date +"%Y-%m-%dT%H:%M:%SZ").sql.gz
 
   if [ "${S3_FILE_NAME}" != "**None**" ]; then
@@ -71,32 +96,22 @@ if [ "${POSTGRES_BACKUP_ALL}" = "true" ]; then
   fi
 
   echo "Creating dump of all databases from ${POSTGRES_HOST}..."
-  pg_dumpall $POSTGRES_HOST_OPTS | gzip > $SRC_FILE
+  # shellcheck disable=SC2086
+  pg_dumpall $POSTGRES_HOST_OPTS | gzip > "$SRC_FILE"
 
   if [ "${ENCRYPTION_PASSWORD}" != "**None**" ]; then
-    echo "Encrypting ${SRC_FILE}"
-    openssl enc -aes-256-cbc -pbkdf2 -in $SRC_FILE -out ${SRC_FILE}.enc -k $ENCRYPTION_PASSWORD
-    if [ $? != 0 ]; then
-      >&2 echo "Error encrypting ${SRC_FILE}"
-    fi
-    rm $SRC_FILE
-    SRC_FILE="${SRC_FILE}.enc"
+    SRC_FILE=$(encrypt_file "$SRC_FILE")
     DEST_FILE="${DEST_FILE}.enc"
   fi
 
-  echo "Uploading dump to $S3_BUCKET"
-  cat $SRC_FILE | aws $AWS_ARGS s3 cp - "s3://${S3_BUCKET}${S3_PREFIX}${DEST_FILE}" || exit 2
-
-  echo "SQL backup uploaded successfully"
-  rm -rf $SRC_FILE
+  upload_file "$SRC_FILE" "${S3_PATH}${DEST_FILE}"
 else
   OIFS="$IFS"
   IFS=','
-  for DB in $POSTGRES_DATABASE
-  do
+  for DB in $POSTGRES_DATABASE; do
     IFS="$OIFS"
 
-    SRC_FILE=dump.sql.gz
+    SRC_FILE=/tmp/dump_${DB}.sql.gz
     DEST_FILE=${DB}_$(date +"%Y-%m-%dT%H:%M:%SZ").sql.gz
 
     if [ "${S3_FILE_NAME}" != "**None**" ]; then
@@ -104,23 +119,14 @@ else
     fi
 
     echo "Creating dump of ${DB} database from ${POSTGRES_HOST}..."
-    pg_dump $POSTGRES_HOST_OPTS $DB | gzip > $SRC_FILE
+    # shellcheck disable=SC2086
+    pg_dump $POSTGRES_HOST_OPTS "$DB" | gzip > "$SRC_FILE"
 
     if [ "${ENCRYPTION_PASSWORD}" != "**None**" ]; then
-      echo "Encrypting ${SRC_FILE}"
-      openssl enc -aes-256-cbc -pbkdf2 -in $SRC_FILE -out ${SRC_FILE}.enc -k $ENCRYPTION_PASSWORD
-      if [ $? != 0 ]; then
-        >&2 echo "Error encrypting ${SRC_FILE}"
-      fi
-      rm $SRC_FILE
-      SRC_FILE="${SRC_FILE}.enc"
+      SRC_FILE=$(encrypt_file "$SRC_FILE")
       DEST_FILE="${DEST_FILE}.enc"
     fi
 
-    echo "Uploading dump to $S3_BUCKET"
-    cat $SRC_FILE | aws $AWS_ARGS s3 cp - "s3://${S3_BUCKET}${S3_PREFIX}${DEST_FILE}" || exit 2
-
-    echo "SQL backup uploaded successfully"
-    rm -rf $SRC_FILE
+    upload_file "$SRC_FILE" "${S3_PATH}${DEST_FILE}"
   done
 fi

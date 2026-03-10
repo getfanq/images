@@ -119,7 +119,7 @@ jobs:
           echo "Running smoke tests on ${{ steps.meta.outputs.primary_tag }}"
           docker run --rm ${{ steps.meta.outputs.primary_tag }} pg_dump --version
           docker run --rm ${{ steps.meta.outputs.primary_tag }} pg_dumpall --version
-          docker run --rm ${{ steps.meta.outputs.primary_tag }} aws --version
+          docker run --rm ${{ steps.meta.outputs.primary_tag }} s3cmd --version
           docker run --rm ${{ steps.meta.outputs.primary_tag }} openssl version
           echo "All smoke tests passed!"
 
