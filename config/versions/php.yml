@@ -38,8 +38,8 @@ extensions:
 
   # Caching & Performance
   - redis
-  - opcache
   - apcu
+  # Note: opcache is bundled into the main PHP package since PHP 8.5 (no separate php-opcache package)
 
   # Message Queue
   - amqp

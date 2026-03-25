@@ -113,7 +113,6 @@ RUN add-apt-repository ppa:ondrej/php -y && \
         php${PHP_VERSION}-bcmath \
         php${PHP_VERSION}-gd \
         php${PHP_VERSION}-redis \
-        php${PHP_VERSION}-opcache \
         php${PHP_VERSION}-apcu \
         php${PHP_VERSION}-amqp \
         && rm -rf /var/lib/apt/lists/*
