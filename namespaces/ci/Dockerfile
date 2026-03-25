@@ -15,7 +15,7 @@
 # Build arguments - these are the only configurable versions
 ARG UBUNTU_VERSION=24.04
 ARG NODE_VERSION=24
-ARG PHP_VERSION=8.2
+ARG PHP_VERSION=8.5
 
 # Base image
 FROM ubuntu:${UBUNTU_VERSION}

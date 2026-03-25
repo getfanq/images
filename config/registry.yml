@@ -29,7 +29,7 @@ naming:
   separator: "-"
   
   # Tag format: ubuntu{version}-node{version}-php{version}
-  # Example: ubuntu22.04-node24-php8.2
+  # Example: ubuntu22.04-node24-php8.5
   format: "ubuntu{ubuntu}-node{node}-php{php}"
   
   # Whether to include minor versions in tags

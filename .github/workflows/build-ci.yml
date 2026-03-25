@@ -50,17 +50,17 @@ jobs:
           {
             "include": [
               {
-                "name": "ubuntu22.04-node24-php8.2",
+                "name": "ubuntu22.04-node24-php8.5",
                 "ubuntu": "22.04",
                 "node": "24",
-                "php": "8.2",
+                "php": "8.5",
                 "aliases": ""
               },
               {
-                "name": "ubuntu24.04-node24-php8.2",
+                "name": "ubuntu24.04-node24-php8.5",
                 "ubuntu": "24.04",
                 "node": "24",
-                "php": "8.2",
+                "php": "8.5",
                 "aliases": "latest"
               }
             ]
@@ -193,12 +193,12 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Pull images using:" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
-          echo "# Latest (Ubuntu 24.04, Node 24, PHP 8.2)" >> $GITHUB_STEP_SUMMARY
+          echo "# Latest (Ubuntu 24.04, Node 24, PHP 8.5)" >> $GITHUB_STEP_SUMMARY
           echo "docker pull ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.NAMESPACE }}:latest" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "# Ubuntu 22.04 with Node 24 and PHP 8.2" >> $GITHUB_STEP_SUMMARY
-          echo "docker pull ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.NAMESPACE }}:ubuntu22.04-node24-php8.2" >> $GITHUB_STEP_SUMMARY
+          echo "# Ubuntu 22.04 with Node 24 and PHP 8.5" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.NAMESPACE }}:ubuntu22.04-node24-php8.5" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "# Ubuntu 24.04 with Node 24 and PHP 8.2" >> $GITHUB_STEP_SUMMARY
-          echo "docker pull ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.NAMESPACE }}:ubuntu24.04-node24-php8.2" >> $GITHUB_STEP_SUMMARY
+          echo "# Ubuntu 24.04 with Node 24 and PHP 8.5" >> $GITHUB_STEP_SUMMARY
+          echo "docker pull ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.NAMESPACE }}:ubuntu24.04-node24-php8.5" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY

@@ -28,28 +28,28 @@ node_versions:
 
 # PHP versions to support
 php_versions:
-  - version: "8.2"
+  - version: "8.5"
     enabled: true
     default: true
 
 # Build matrix - All combinations of Ubuntu, Node, and PHP
 # With 2 Ubuntu × 1 Node × 1 PHP = 2 images
 build_matrix:
-  # Ubuntu 22.04 with Node 24 and PHP 8.2
-  - name: "ubuntu22.04-node24-php8.2"
+  # Ubuntu 22.04 with Node 24 and PHP 8.5
+  - name: "ubuntu22.04-node24-php8.5"
     ubuntu: "22.04"
     node: "24"
-    php: "8.2"
-    description: "Ubuntu 22.04 LTS with Node.js 24 and PHP 8.2"
+    php: "8.5"
+    description: "Ubuntu 22.04 LTS with Node.js 24 and PHP 8.5"
     
-  # Ubuntu 24.04 with Node 24 and PHP 8.2
-  - name: "ubuntu24.04-node24-php8.2"
+  # Ubuntu 24.04 with Node 24 and PHP 8.5
+  - name: "ubuntu24.04-node24-php8.5"
     ubuntu: "24.04"
     node: "24"
-    php: "8.2"
+    php: "8.5"
     aliases:
       - "latest"
-    description: "Ubuntu 24.04 LTS with Node.js 24 and PHP 8.2"
+    description: "Ubuntu 24.04 LTS with Node.js 24 and PHP 8.5"
 
 # PHP extensions to install (see config/versions/php.yml for full list)
 php_extensions:

@@ -1,12 +1,12 @@
 # PHP version definitions
 versions:
-  - version: "8.2"
-    full_version: "8.2.x"
+  - version: "8.5"
+    full_version: "8.5.x"
     supported: true
-    description: "PHP 8.2 (Security fixes until 2026-12-08)"
-    release_date: "2022-12-08"
-    active_support_until: "2025-12-08"
-    security_support_until: "2026-12-08"
+    description: "PHP 8.5 (Security fixes until 2029-12-31)"
+    release_date: "2025-11-20"
+    active_support_until: "2027-12-31"
+    security_support_until: "2029-12-31"
     default: true
 
 # PHP repository configuration (ondrej/php PPA)
@@ -21,12 +21,12 @@ extensions:
   - cli
   - fpm
   - common
-  
+
   # Database drivers
   - mysql
   - pgsql
   - sqlite3
-  
+
   # Core functionality
   - xml
   - curl
@@ -35,15 +35,15 @@ extensions:
   - zip
   - bcmath
   - gd
-  
+
   # Caching & Performance
   - redis
   - opcache
   - apcu
-  
+
   # Message Queue
   - amqp
-  
+
   # Optional (uncomment if needed)
   # - mongodb
   # - memcached
